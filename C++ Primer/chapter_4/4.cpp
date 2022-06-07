@@ -49,5 +49,28 @@ int main(){
     // iter->empty();
     // iter++;
   
+    int grade=80;
+    cout<<((grade<60)?"fail":"pass")<<endl;
+    cout<<(grade<60)?"fail":"pass";
+    //cout<<grade<60?"fail":"pass";
+    
+    int x[10];
+    int *p=x;
+    cout<<sizeof(x)/sizeof(*x)<<endl;//10
+    cout<<sizeof(p)<<endl;//8
+    cout<<sizeof(*p)<<endl;//4
+    cout<<sizeof(p)/sizeof(*p)<<endl;
+    
+    const char *pc;
+    char *p=const_cast<char *>(pc);//正确：但是通过p写值是未定义的行为
+
+    const char *cp;
+    //char *cp=static_cast<char*>(cp);
+    string str=static_cast<string>(cp);
+    //string str2=const_cast<string>(cp);
+    
+    int *ip;
+    char *pc=reinterpret_cast<char*>(ip);
+    //string str(ip);
     return 0;
 }
