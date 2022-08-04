@@ -23,6 +23,7 @@ public:
         cout << this->bookNo << ' ' << this->price << endl;
     }
 
+    
     virtual ~Quote() = default; //对析构函数进行动态绑定
 
 private:
@@ -94,7 +95,6 @@ double Basket::total_receipt(ostream &os) const
     os << "Total Sale: " << sum << endl;
     return sum;
 }
-
 
 
 
