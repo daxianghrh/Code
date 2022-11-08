@@ -28,19 +28,18 @@ bool kmp(string &s, string &t) {
     int i = 0, j = 0;
     int next[t.size()];
     getNext(next, t);
-    while (i < s.size() && j < t.size()) {
-        // j回溯到0时 i+1;
-        if (j == 0 || s[i] == t[j]) {
-            ++i;
-            ++j;
-        }else{
+    for (int i = 0; i < s.size(); ++i) {
+        while (j > 0 && s[i] != t[j]) {
             j = next[j - 1];
         }
+        if (s[i] == t[j]) {
+            ++j;
+        }
+        if (j == t.size()) {
+            return true;
+        }
     }
-    if ( i > s.size()) {
-        return false;
-    }
-    return true;
+    return false;
 }
 
 int main()
