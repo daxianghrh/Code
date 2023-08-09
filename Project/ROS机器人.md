@@ -1,5 +1,77 @@
 # 基于ROS的室内移动机器人
 
+## 这个项目中你主要负责什么？
+
+主要负责项目软件环境搭建，keil + vscode,分析硬件电路图编写底层软件代码和移植FreeRTOS，如ADC采样电压、制定串口通信协议、模拟IIC读取传感器MPU6050的数据、DMA定长数据串口传输、PID调速等，ROS上层软件开发实现建图与导航等功能。
+
+## 代码量多少？
+C:
+15个.c文件 15 * 200
+15个.h文件 15 * 100
+main.c    54
+
+C++:
+1个.cpp和1个.h 1000
+一些python文件 launch文件 
+
+总计 5000行以上
+
+
+## 控制逻辑
+-	定时器7每20ms中断一次：执行喂狗指令和电源指示灯显示->ADC采样
+-	串口1中断接收数据，使用DMA传输数据
+- 	FreeRtos任务1：实现增量式PID调速 10ms
+-	FreeRtos任务2：将底层数据通过串口发送给上位机 10ms
+
+
+## 通信协议如何制定?
+使用`union`联合体和`#pragma pack(1)`预编译指令，使通信协议数据的`77字节`按`1字节`对齐。
+优点：不需要注意移动、字节大小端和字节序等问题，便于解析
+```c
+#define PROTOCOL_HEADER		0XFEFEFEFE
+#define PROTOCOL_END		  0XEE
+ 
+#define PROTOCL_DATA_SIZE 77
+
+
+#pragma pack(1)
+typedef struct __Mpu6050_Str_
+{
+	short X_data;
+	short Y_data;
+	short Z_data;
+}Mpu6050_Str;
+
+typedef struct __Moto_Str_
+{
+	float Moto_CurrentSpeed;
+	float Moto_TargetSpeed;
+}Moto_Str;
+
+typedef union _Upload_Data_   
+{
+	unsigned char buffer[PROTOCL_DATA_SIZE];
+	struct _Sensor_Str_
+	{
+		unsigned int Header;	
+		float X_speed;					
+		float Y_speed;			
+		float Z_speed;			
+		float Battery_Voltage_;
+		
+		Mpu6050_Str Link_Accelerometer;		
+		Mpu6050_Str Link_Gyroscope;			
+		
+		Moto_Str MotoStr[4];		
+		float PID_Param[3];					
+		
+		unsigned char End_flag;			
+	}Sensor_Str;
+}Upload_Data;
+#pragma pack(4)
+```
+
+
 ## 相关知识点？
 
 ### IIC通信
