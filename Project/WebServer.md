@@ -77,3 +77,61 @@ int number = epoll_wait(m_epollfd, events, MAX_EVENT_NUMBER, -1);
 
 ### 8、日志优化？
 
+
+
+
+### 9、`pthread_create`函数原型中的第三个参数，为函数指针，指向处理线程函数的地址。为什么当处理线程函数为类成员函数时，需要将其设置为静态成员函数?
+
+原因为：C++的成员函数在编译后与普通函数有一些不同之处，最显著的是它们需要一个额外的隐式参数，即指向类实例（对象）的指针（通常称为this指针）。而pthread_create函数所期望的线程函数签名是 void *(*start_routine)(void *)，它只接受一个指向 void 参数的指针。
+
+因此，如果你试图将普通的非静态成员函数作为线程函数传递给 pthread_create，编译器会报错，因为这个成员函数的签名不符合 pthread_create 需要的签名。
+
+解决方法之一是将成员函数设置为静态成员函数，因为静态成员函数不依赖于类的实例，所以没有隐式的 this 指针，其签名与 pthread_create 所期望的线程函数签名一致。但这种方法的限制是，你无法在静态成员函数中直接访问非静态成员变量或调用非静态成员函数。
+
+另一种方法是使用一个非成员函数作为中间代理，将实际的成员函数调用封装在这个代理函数中。你可以将类的实例指针作为参数传递给代理函数，然后在代理函数内部调用成员函数
+
+### 10、epolloneshot的作用？
+
+这时就引入了 EPOLLONESHOT 选项的作用。当你使用 EPOLLONESHOT 选项时，epoll 会确保每个文件描述符在一次事件被处理后只会被触发一次，然后它将自动将该文件描述符从 epoll 集合中移除。这样可以避免多个线程同时处理同一个文件描述符的事件，从而简化了同步和竞争的处理。
+
+需要注意的是，如果使用 EPOLLONESHOT，则在每次处理完事件后都需要重新设置文件描述符的事件监听。如果不这样做，文件描述符将不会再次被触发，因为它已经被移除了 epoll 集合。
+
+### 11、select、poll和epoll的应用场景？
+
+-  当所有的fd都是活跃连接，使用epoll，需要建立文件系统，红黑书和链表对于此来说，效率反而不高，不如selece和poll
+
+-  当监测的fd数目较小，且各个fd都比较活跃，建议使用select或者poll
+
+-  当监测的fd数目非常大，成千上万，且单位时间只有其中的一部分fd处于就绪状态，这个时候使用epoll能够明显提升性能
+
+### 12、http协议中的get和post请求？
+
+请求方法:Get和Post。由请求行（request line）、请求头部（header）、空行和请求数据四个部分组成。
+
+- Get:
+```txt
+1    GET /562f25980001b1b106000338.jpg HTTP/1.1
+2    Host:img.mukewang.com
+3    User-Agent:Mozilla/5.0 (Windows NT 10.0; WOW64)
+4    AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36
+5    Accept:image/webp,image/*,*/*;q=0.8
+6    Referer:http://www.imooc.com/
+7    Accept-Encoding:gzip, deflate, sdch
+8    Accept-Language:zh-CN,zh;q=0.8
+9    空行
+10    请求数据为空
+```
+
+- POST:
+```txt
+1    POST / HTTP1.1
+2    Host:www.wrox.com
+3    User-Agent:Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.648; .NET CLR 3.5.21022)
+4    Content-Type:application/x-www-form-urlencoded
+5    Content-Length:40
+6    Connection: Keep-Alive
+7    空行
+8    name=Professional%20Ajax&publisher=Wiley
+```
+
+HTTP响应也由四个部分组成，分别是：状态行、消息报头、空行和响应正文。
