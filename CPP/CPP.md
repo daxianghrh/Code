@@ -469,7 +469,7 @@ C++中的标准库提供了`std::unordered_map`作为哈希表的实现，它提
 
 ## 14、堆
 使用堆排序解决数组中第K大的元素,**Top K问题**。<br>
-解决方法：使用数组建堆，实现堆排<br>
+解决方法：使用数组建堆，实现堆排<br> 
 关键点：
 -   对于索引为`i`的节点，其父节点索引为`(i-1)/2`,左孩子和右孩子节点索引为`i * 2 + 1`、`i * 2 + 2`。
 -   从数组中的一半开始建堆，从下往上进行
@@ -895,6 +895,75 @@ private:
     int* ref_count_;
     std::shared_mutex* ref_count_mutex_;
 };
+```
+
+>unique_ptr的底层实现？
+```cpp
+#include <iostream>
+template <typename T>
+class MyUniquePtr {
+public:
+    explicit MyUniquePtr(T* ptr = nullptr) : data(ptr) {}
+
+    ~MyUniquePtr() {
+        if (data) {
+            delete data;
+            std::cout << "Memory released" << std::endl;
+        }
+    }
+
+    // 移动构造函数
+    MyUniquePtr(MyUniquePtr&& other) : data(other.data) {
+        other.data = nullptr;
+    }
+
+    // 移动赋值操作符
+    MyUniquePtr& operator=(MyUniquePtr&& other) {
+        if (this != &other) {
+            delete data;
+            data = other.data;
+            other.data = nullptr;
+        }
+        return *this;
+    }
+
+    T* operator->() const {
+        return data;
+    }
+
+private:
+    T* data;
+};
+
+class MyClass {
+public:
+    MyClass(int value) : data(value) {
+        std::cout << "MyClass constructor: " << data << std::endl;
+    }
+    ~MyClass() {
+        std::cout << "MyClass destructor: " << data << std::endl;
+    }
+    void doSomething() {
+        std::cout << "Doing something with " << data << std::endl;
+    }
+
+private:
+    int data;
+};
+
+int main() {
+    MyUniquePtr<MyClass> uniquePtr(new MyClass(42));
+    uniquePtr->doSomething();
+
+    MyUniquePtr<MyClass> anotherPtr(std::move(uniquePtr));
+    if (!uniquePtr) {
+        std::cout << "uniquePtr is empty" << std::endl;
+    }
+
+    anotherPtr->doSomething();
+    
+    return 0;
+}
 ```
 
 >weak_ptr的作用？
