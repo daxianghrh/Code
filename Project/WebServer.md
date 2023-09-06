@@ -68,7 +68,31 @@ int number = epoll_wait(m_epollfd, events, MAX_EVENT_NUMBER, -1);
 
 采用**主从状态机**模式进行解析，从状态机(`parser_line`)负责读取报文的一行，主状态机负责对该行数据进行解析，主状态机内部调用从状态机，从状态机驱动主状态机。每解析一部分都会将整个请求的`m_check_state`状态改变，状态机也就是根据这个状态来进行不同部分的解析跳转的。
 
-### 7、定时器优化？
+### 7、定时器及定时器优化？
+
+使用了`C++`中组合的设计思想，将定时器类`util_timer`与客户端相关信息的类`client_data`组合在一起，并提供一种更结构化、可扩展和易维护的方式来实现功能。
+```cpp
+struct client_data
+{
+    sockaddr_in address;
+    int sockfd;
+    util_timer *timer;
+};
+
+class util_timer
+{
+public:
+    util_timer() : prev(NULL), next(NULL) {}
+
+public:
+    time_t expire;
+    
+    void (* cb_func)(client_data *);
+    client_data *user_data;
+    util_timer *prev;
+    util_timer *next;
+};
+```
 
 这个基于升序双向链表实现的定时器存在着其固有缺点：
 
@@ -98,7 +122,7 @@ int number = epoll_wait(m_epollfd, events, MAX_EVENT_NUMBER, -1);
 
 ### 11、select、poll和epoll的应用场景？
 
--  当所有的fd都是活跃连接，使用epoll，需要建立文件系统，红黑书和链表对于此来说，效率反而不高，不如selece和poll
+-  当所有的fd都是活跃连接，使用epoll，需要建立文件系统，红黑树和链表对于此来说，效率反而不高，不如selece和poll
 
 -  当监测的fd数目较小，且各个fd都比较活跃，建议使用select或者poll
 
