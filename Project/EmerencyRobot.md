@@ -8,9 +8,116 @@
 ## 为什么采用WebSocket通信协议？
 因为移动小车厂家提供与底层通信的方式采用的是`WebSocket`通信方式，数据格式采用`JSON`,为了方便使用与解决实际需要，故采用该种方式，同时QT中提供了`QWebSocket`类库，对`socket`的封装。
 
+## qt中的信号与槽的底层原理？
+
+Qt的信号与槽机制的底层实现基于元对象系统（Meta-Object System）。这个系统负责在运行时管理类的信息、信号、槽和其他元数据。以下是信号与槽机制的底层实现概述：
+
+1. **元对象（Meta Object）：** 在Qt中，每个QObject派生的类都有一个对应的元对象。元对象是一个描述类的元数据的数据结构，其中包含了类的名称、父类信息、信号和槽信息等。
+
+2. **MOC编译器（Meta-Object Compiler）：** 为了处理信号与槽机制，Qt引入了MOC编译器。MOC会解析源代码中使用`Q_OBJECT`、`Q_SIGNALS`和`Q_SLOTS`等宏标记的部分，并生成额外的C++代码。这些代码包含了元对象的信息，用于支持信号与槽的连接和调用。
+
+3. **信号表（Signal Table）和槽表（Slot Table）：** 在元对象中，有两个重要的表格，即信号表和槽表。信号表记录了类中所有声明的信号，包括信号的名称、参数类型等信息。槽表则记录了类中声明的槽，以及槽的名称、参数类型等信息。
+
+4. **连接的建立：** 当使用`QObject::connect`函数建立信号与槽的连接时，Qt会在发射信号的对象的元对象中查找信号的索引，然后在接收信号的对象的元对象中查找槽的索引。这样，Qt就可以在运行时知道如何在信号发射时调用正确的槽。
+
+5. **信号的发射与槽的调用：** 当信号发射时，Qt通过元对象中的信号索引找到连接的槽的索引，并通过函数指针调用槽函数。这意味着，信号发射和槽的调用是在运行时动态完成的。
 ## qt中的多线程编程
 
 [qt中常见多线程编程方法](https://blog.csdn.net/weixin_44840658/article/details/108625659#:~:text=Qt%E7%9A%844%E7%A7%8D%E5%A4%9A%E7%BA%BF%E7%A8%8B%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F%201%20%E4%B8%80%E3%80%81QThread%E7%B1%BB%E7%9A%84run%20%E4%B8%80%E3%80%81%E5%AE%9E%E7%8E%B0%E6%96%B9%E6%B3%95%EF%BC%9A%20%E6%96%B0%E5%BB%BA%E4%B8%80%E4%B8%AA%E9%9B%86%E6%88%90QThread%E7%9A%84%E7%B1%BB%EF%BC%8C%E9%87%8D%E5%86%99%E8%99%9A%E5%87%BD%E6%95%B0run%2C%E9%80%9A%E8%BF%87run%E5%90%AF%E5%8A%A8%E7%BA%BF%E7%A8%8B%20%E4%BA%8C%E3%80%81%E7%A4%BA%E4%BE%8B%EF%BC%9A%20...%202,%E4%B8%89%E3%80%81QRunnalble%E7%9A%84run%20Qrunnable%E6%98%AF%E6%89%80%E6%9C%89%E5%8F%AF%E6%89%A7%E8%A1%8C%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%9F%BA%E7%B1%BB%E3%80%82%20...%204%20%E5%9B%9B%E3%80%81QtConcurrent%E7%9A%84run%20Concurrent%E6%98%AF%E5%B9%B6%E5%8F%91%E7%9A%84%E6%84%8F%E6%80%9D%EF%BC%8CQtConcurrent%E6%98%AF%E4%B8%80%E4%B8%AA%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%EF%BC%8C%E6%8F%90%E4%BE%9B%E4%BA%86%E4%B8%80%E4%BA%9B%E9%AB%98%E7%BA%A7%E7%9A%84%20API%EF%BC%8C%E4%BD%BF%E5%BE%97%E5%9C%A8%E7%BC%96%E5%86%99%E5%A4%9A%E7%BA%BF%E7%A8%8B%E7%9A%84%E6%97%B6%E5%80%99%EF%BC%8C%E6%97%A0%E9%9C%80%E4%BD%BF%E7%94%A8%E4%BD%8E%E7%BA%A7%E7%BA%BF%E7%A8%8B%E5%8E%9F%E8%AF%AD%EF%BC%8C%E5%A6%82%E8%AF%BB%E5%86%99%E9%94%81%EF%BC%8C%E7%AD%89%E5%BE%85%E6%9D%A1%E4%BB%B6%E6%88%96%E4%BF%A1%E5%8F%B7%E3%80%82%20)
+
+## qt中实现生产者-消费者模型？
+
+当在Qt中实现生产者消费者模型时，使用条件变量（QWaitCondition）可以更有效地实现线程同步，避免不必要的轮询。以下是在前面示例的基础上添加了条件变量的实现：
+
+```cpp
+#include <QCoreApplication>
+#include <QThread>
+#include <QMutex>
+#include <QWaitCondition>
+#include <QDebug>
+
+class Buffer {
+public:
+    Buffer(int size) : maxSize(size), count(0) {}
+
+    void produce() {
+        mutex.lock();
+        if (count < maxSize) {
+            ++count;
+            qDebug() << "Produced, count =" << count;
+            notEmpty.wakeAll(); // Signal consumers that data is available
+        }
+        mutex.unlock();
+    }
+
+    void consume() {
+        mutex.lock();
+        while (count == 0) {
+            notEmpty.wait(&mutex); // Wait until there's data to consume
+        }
+        --count;
+        qDebug() << "Consumed, count =" << count;
+        mutex.unlock();
+    }
+
+private:
+    int maxSize;
+    int count;
+    QMutex mutex;
+    QWaitCondition notEmpty;
+};
+
+class Producer : public QThread {
+public:
+    Producer(Buffer* buffer) : buffer(buffer) {}
+
+    void run() override {
+        for (int i = 0; i < 10; ++i) {
+            buffer->produce();
+            msleep(500); // Simulate production time
+        }
+    }
+
+private:
+    Buffer* buffer;
+};
+
+class Consumer : public QThread {
+public:
+    Consumer(Buffer* buffer) : buffer(buffer) {}
+
+    void run() override {
+        for (int i = 0; i < 10; ++i) {
+            buffer->consume();
+            msleep(800); // Simulate consumption time
+        }
+    }
+
+private:
+    Buffer* buffer;
+};
+
+int main(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
+
+    Buffer buffer(5);
+    Producer producer(&buffer);
+    Consumer consumer(&buffer);
+
+    producer.start();
+    consumer.start();
+
+    producer.wait();
+    consumer.wait();
+
+    return a.exec();
+}
+```
+
+在上述示例中，`Buffer` 类中使用了 `QWaitCondition` 来实现条件变量。生产者在生产数据时通过 `notEmpty.wakeAll()` 来唤醒等待的消费者线程。消费者线程在没有数据可消费时，通过 `notEmpty.wait(&mutex)` 来等待条件变量满足。
+
+这种方式避免了消费者线程的空轮询，提高了线程的效率和性能。同时，使用了互斥锁 `mutex` 来确保在修改数据和等待条件变量时的线程安全。
 
 ## 如何实现心跳检测功能？
 在对`QWebSocket`客户端进行封装时，添加一个是否自动重连和心跳次数的两个成员变量；使用`QTimer`定时器，定时器每5s进入一次槽函数，槽函数内心跳次数加1，对心跳次数进行判断，是否超过阈值，若超过，则表明心跳超时，根据是否自动重连的标志进行重连操作，若重连失败表示服务端异常；若未超过阈值，则通过`WebSocket`通信协议向服务端发送一个心跳包，服务端收到心跳包后，对应地发送一个心跳包，将客户端的心跳次数清0。心跳包为自定义的`JSON`数据。
